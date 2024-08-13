@@ -1,0 +1,28 @@
+.contactForm {
+  display: flex;
+  flex-direction: column;
+  margin: 0 auto;
+  width: 320px;
+  border: 1px solid black;
+  border-radius: 5px;
+  padding: 20px;
+}
+
+.contactLabel {
+  display: flex;
+  flex-direction: column;
+}
+.contactLabelText {
+  text-align: start;
+}
+
+.contactBtn {
+  margin-left: auto;
+  margin-right: auto;
+  margin-top: 16px;
+  width: 150px;
+}
+
+.error {
+  color: red;
+}
