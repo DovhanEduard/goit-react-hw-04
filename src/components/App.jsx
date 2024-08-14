@@ -1,75 +1,117 @@
 import './App.css';
-import { useState, useEffect } from 'react';
-import ContactForm from './ContactForm/ContactForm';
-import ContactList from './ContactList/ContactList';
-import SearchBox from './SearchBox/SearchBox';
-import { nanoid } from 'nanoid';
+import { useEffect, useState } from 'react';
+import SearchBar from './SearchBar/SearchBar';
+import ImageGallery from './ImageGallery/ImageGallery';
+import Loader from './Loader/Loader';
+import ErrorMessage from './ErrorMessage/ErrorMessage';
+import LoadMoreBtn from './LoadMoreBtn/LoadMoreBtn';
+import ImageModal from './ImageModal/ImageModal';
+import { getImagesByValue } from './services/api';
 
 function App() {
-  const contactsList = [
-    { id: 'id-1', name: 'Rosie Simpson', number: '459-12-56' },
-    { id: 'id-2', name: 'Hermione Kline', number: '443-89-12' },
-    { id: 'id-3', name: 'Eden Clements', number: '645-17-79' },
-    { id: 'id-4', name: 'Annie Copeland', number: '227-91-26' },
-  ];
-
-  const [contacts, setContacts] = useState(() => {
-    const isLocalStorageHasData = Boolean(localStorage.getItem('contacts'));
-
-    if (isLocalStorageHasData) {
-      const data = localStorage.getItem('contacts');
-      return JSON.parse(data);
-    }
-
-    return contactsList;
-  });
+  const [images, setImages] = useState(null);
+  const [isLoading, setIsLoading] = useState(false);
+  const [error, setError] = useState(null);
+  const [searchedValue, setSearchedValue] = useState(null);
+  const [currentPage, setCurrentPage] = useState(1);
+  const [totalPages, setTotalPages] = useState(1);
+  const [selectedImage, setSelectedImage] = useState(null);
+  const [modalIsOpen, setIsOpen] = useState(false);
 
   useEffect(() => {
-    const isLocalStorageHasData = Boolean(localStorage.getItem('reviews'));
-    if (isLocalStorageHasData) {
-      const data = localStorage.getItem('reviews');
-      setContacts(JSON.parse(data));
+    if (currentPage > 1) {
+      fetchImages(currentPage);
     }
-  }, []);
+  }, [currentPage]);
 
-  useEffect(() => {
-    localStorage.setItem('contacts', JSON.stringify(contacts));
-  }, [contacts]);
+  const onSearch = searchValue => {
+    setSearchedValue(searchValue);
 
-  const [searchValue, setSearchValue] = useState('');
+    const fetchImages = async () => {
+      try {
+        setCurrentPage(1);
+        setIsLoading(true);
+        const data = await getImagesByValue(currentPage, searchValue);
 
-  const onSearch = event => {
-    const searchValue = event.target.value;
-
-    setSearchValue(searchValue);
-  };
-
-  const onAddContact = contact => {
-    const finalContact = {
-      id: nanoid(),
-      name: contact.username,
-      number: contact.phoneNumber,
+        setImages(data.results);
+        setTotalPages(data.total_pages);
+      } catch (err) {
+        setError(err.message);
+      } finally {
+        setIsLoading(false);
+      }
     };
-    setContacts([finalContact, ...contacts]);
+    fetchImages();
   };
 
-  const onDeleteContact = contactId => {
-    setContacts(contacts.filter(contact => contact.id !== contactId));
+  const fetchImages = () => {
+    const fetchPhotos = async () => {
+      try {
+        setIsLoading(true);
+        const data = await getImagesByValue(currentPage, searchedValue);
+        setImages([...images, ...data.results]);
+      } catch (err) {
+        setError(err.message);
+      } finally {
+        setIsLoading(false);
+      }
+    };
+    fetchPhotos();
   };
 
-  const filteredContacts = contacts.filter(contact =>
-    contact.name.toLowerCase().includes(searchValue.toLowerCase())
-  );
+  const onPageChange = page => {
+    const scrollDistance = 400;
+
+    window.scrollBy({
+      top: scrollDistance,
+      left: 0,
+      behavior: 'smooth',
+    });
+    
+    if (totalPages === currentPage) {
+      return;
+    }
+    setCurrentPage(page);
+  };
+
+  const openModal = () => {
+    setIsOpen(true);
+  };
+
+  const closeModal = () => {
+    setIsOpen(false);
+  };
+
+  const onAfterClose = () => {
+    setSelectedImage(null);
+  };
 
   return (
     <>
-      <h1>Phonebook</h1>
-      <ContactForm onAddContact={onAddContact} />
-      <SearchBox value={searchValue} onSearch={onSearch} />
-      <ContactList
-        contacts={filteredContacts}
-        onDeleteContact={onDeleteContact}
-      />
+      <SearchBar onSearch={onSearch} />
+      {isLoading && <Loader />}
+      {error !== null && <ErrorMessage error={error} />}
+      {images !== null && (
+        <ImageGallery
+          onSmallImgClick={setSelectedImage}
+          onClick={openModal}
+          images={images}
+        />
+      )}
+      {Array.isArray(images) &&
+        images.length !== 0 &&
+        currentPage !== totalPages && (
+          <LoadMoreBtn page={currentPage} onLoadMore={onPageChange} />
+        )}
+      {selectedImage && (
+        <ImageModal
+          modalIsOpen={modalIsOpen}
+          openModal={openModal}
+          closeModal={closeModal}
+          onAfterClose={onAfterClose}
+          image={selectedImage}
+        />
+      )}
     </>
   );
 }
