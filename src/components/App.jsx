@@ -60,14 +60,6 @@ function App() {
   };
 
   const onPageChange = page => {
-    const scrollDistance = 400;
-
-    window.scrollBy({
-      top: scrollDistance,
-      left: 0,
-      behavior: 'smooth',
-    });
-    
     if (totalPages === currentPage) {
       return;
     }
