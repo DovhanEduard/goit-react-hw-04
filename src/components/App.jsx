@@ -1,5 +1,5 @@
 import './App.css';
-import { useEffect, useState } from 'react';
+import { useState } from 'react';
 import SearchBar from './SearchBar/SearchBar';
 import ImageGallery from './ImageGallery/ImageGallery';
 import Loader from './Loader/Loader';
@@ -14,42 +14,25 @@ function App() {
   const [error, setError] = useState(null);
   const [searchedValue, setSearchedValue] = useState(null);
   const [currentPage, setCurrentPage] = useState(1);
-  const [totalPages, setTotalPages] = useState(1);
+  const [totalPages, setTotalPages] = useState(null);
   const [selectedImage, setSelectedImage] = useState(null);
   const [modalIsOpen, setIsOpen] = useState(false);
 
-  useEffect(() => {
-    if (currentPage > 1) {
-      fetchImages(currentPage);
-    }
-  }, [currentPage]);
-
-  const onSearch = searchValue => {
-    setSearchedValue(searchValue);
-
-    const fetchImages = async () => {
-      try {
-        setCurrentPage(1);
-        setIsLoading(true);
-        const data = await getImagesByValue(currentPage, searchValue);
-
-        setImages(data.results);
-        setTotalPages(data.total_pages);
-      } catch (err) {
-        setError(err.message);
-      } finally {
-        setIsLoading(false);
-      }
-    };
-    fetchImages();
-  };
-
-  const fetchImages = () => {
+  const fetchImages = (page, searchValue) => {
     const fetchPhotos = async () => {
       try {
+        setCurrentPage(page);
         setIsLoading(true);
-        const data = await getImagesByValue(currentPage, searchedValue);
-        setImages([...images, ...data.results]);
+        setError(null);
+
+        const data = await getImagesByValue(page, searchValue);
+        const isFirstPage = page === 1;
+        const updatedCurrentData = isFirstPage
+          ? data.results
+          : [...images, ...data.results];
+
+        setImages(updatedCurrentData);
+        setTotalPages(data.total_pages);
       } catch (err) {
         setError(err.message);
       } finally {
@@ -59,11 +42,17 @@ function App() {
     fetchPhotos();
   };
 
-  const onPageChange = page => {
-    if (totalPages === currentPage) {
-      return;
-    }
-    setCurrentPage(page);
+  const onSearch = searchValue => {
+    setSearchedValue(searchValue);
+
+    fetchImages(1, searchValue);
+  };
+
+  const onPageChange = () => {
+    const nextPage = currentPage + 1;
+
+    setCurrentPage(nextPage);
+    fetchImages(nextPage, searchedValue);
   };
 
   const openModal = () => {
@@ -78,23 +67,25 @@ function App() {
     setSelectedImage(null);
   };
 
+  const isImages = Boolean(images?.length);  
+  const isPagesToLoad = currentPage !== totalPages;
+
   return (
     <>
       <SearchBar onSearch={onSearch} />
       {isLoading && <Loader />}
-      {error !== null && <ErrorMessage error={error} />}
-      {images !== null && (
-        <ImageGallery
-          onSmallImgClick={setSelectedImage}
-          onClick={openModal}
-          images={images}
-        />
+      {error && <ErrorMessage error={error} />}
+      {isImages && (
+        <>
+          <ImageGallery
+            onSmallImgClick={setSelectedImage}
+            onClick={openModal}
+            images={images}
+          />
+          {isPagesToLoad && <LoadMoreBtn onLoadMore={onPageChange} />}
+        </>
       )}
-      {Array.isArray(images) &&
-        images.length !== 0 &&
-        currentPage !== totalPages && (
-          <LoadMoreBtn page={currentPage} onLoadMore={onPageChange} />
-        )}
+
       {selectedImage && (
         <ImageModal
           modalIsOpen={modalIsOpen}

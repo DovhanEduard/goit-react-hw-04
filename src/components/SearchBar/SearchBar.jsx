@@ -8,10 +8,10 @@ function SearchBar({ onSearch }) {
     const searchValue = event.currentTarget.search.value.trim();
 
     if (searchValue === '') {
-      return toast.error('Необхідно вести текст для пошуку зображення');
+      toast.error('Необхідно вести текст для пошуку зображення');
+    } else {
+      onSearch(searchValue);
     }
-
-    onSearch(searchValue);
   };
 
   return (

@@ -1,6 +1,6 @@
-const LoadMoreBtn = ({page, onLoadMore }) => {
+const LoadMoreBtn = ({onLoadMore }) => {
   return (
-    <button type="button" onClick={() => onLoadMore(page + 1)}>
+    <button type="button" onClick={onLoadMore}>
       Load More
     </button>
   );
